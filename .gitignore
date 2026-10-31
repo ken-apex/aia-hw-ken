@@ -1,0 +1,25 @@
+# Secrets: never commit these to a public repo
+.env
+.env.*
+*.key
+*.pem
+*.p12
+secrets*
+credentials*
+*token*
+
+# Private or licensed data: keep it on your own machine
+private/
+data/private/
+setsmart/
+*SETSMART*
+
+# System and tool clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+__pycache__/
+.venv/
+venv/
+node_modules/
+.claude/settings.local.json
