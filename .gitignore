@@ -10,7 +10,7 @@ credentials*
 
 # Private or licensed data: keep it on your own machine
 private/
-data/private/
+data/
 setsmart/
 *SETSMART*
 
@@ -22,4 +22,4 @@ __pycache__/
 .venv/
 venv/
 node_modules/
-.claude/settings.local.json
+.claude/settings.local.json*
