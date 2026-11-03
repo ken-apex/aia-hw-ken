@@ -11,6 +11,7 @@ credentials*
 # Private or licensed data: keep it on your own machine
 private/
 data/
+knowledge-base/
 setsmart/
 *SETSMART*
 
