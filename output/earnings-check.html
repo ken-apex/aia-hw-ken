@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ตรวจคำพูดผู้บริหาร</title>
+<style>
+:root {
+  --bg: #f7f6f2; --panel: #ffffff; --ink: #1d2433; --muted: #5d6675; --line: #dcdad2; --accent: #0f4c81;
+  --ok: #17693c; --ok-bg: #e2f2e8; --ctx: #7a5a06; --ctx-bg: #f8eecb; --chk: #9a4a0b; --chk-bg: #fbe6d3;
+  --bad: #a11d2a; --bad-bg: #fadfe1; --na: #4e5766; --na-bg: #e7e9ed;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181f; --panel: #1c222b; --ink: #e9ecf1; --muted: #a2abb8; --line: #333b47; --accent: #7db8ea;
+    --ok: #7fd6a2; --ok-bg: #173526; --ctx: #e8c964; --ctx-bg: #3a3112; --chk: #f0ad78; --chk-bg: #41280f;
+    --bad: #f4939c; --bad-bg: #431b20; --na: #bcc4d0; --na-bg: #2c333e;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181f; --panel: #1c222b; --ink: #e9ecf1; --muted: #a2abb8; --line: #333b47; --accent: #7db8ea;
+  --ok: #7fd6a2; --ok-bg: #173526; --ctx: #e8c964; --ctx-bg: #3a3112; --chk: #f0ad78; --chk-bg: #41280f;
+  --bad: #f4939c; --bad-bg: #431b20; --na: #bcc4d0; --na-bg: #2c333e;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.65 "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 30px; line-height: 1.25; margin: 0 0 8px; }
+h2 { font-size: 23px; margin: 44px 0 4px; }
+h3 { font-size: 17px; margin: 22px 0 6px; }
+p { margin: 8px 0; }
+a { color: var(--accent); }
+.lead { color: var(--muted); max-width: 780px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; margin: 16px 0; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 20px 0; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.stat b { display: block; font-size: 26px; line-height: 1.2; }
+.stat span { color: var(--muted); font-size: 14px; }
+.filters { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0; display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 1px solid var(--line); }
+.filters button { font: inherit; font-size: 14px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 13px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.period { color: var(--muted); margin: 0 0 8px; }
+ul { margin: 6px 0; padding-left: 22px; }
+li { margin: 5px 0; }
+table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); margin-top: 14px; font-size: 15px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-size: 13px; font-weight: 600; }
+th:nth-child(1) { width: 31%; } th:nth-child(2) { width: 31%; } th:nth-child(3) { width: 13%; } th:nth-child(4) { width: 25%; }
+.chip { display: inline-block; white-space: nowrap; font-size: 13px; font-weight: 600; padding: 2px 9px; border-radius: 999px; }
+.ok .chip { color: var(--ok); background: var(--ok-bg); }
+.ctx .chip { color: var(--ctx); background: var(--ctx-bg); }
+.chk .chip { color: var(--chk); background: var(--chk-bg); }
+.bad .chip { color: var(--bad); background: var(--bad-bg); }
+.na .chip { color: var(--na); background: var(--na-bg); }
+.src { font-size: 14px; color: var(--muted); }
+footer { margin-top: 44px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 14px; }
+@media (max-width: 720px) {
+  h1 { font-size: 25px; }
+  thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tr { border-bottom: 2px solid var(--line); padding: 8px 0; }
+  td { border: 0; padding: 5px 12px; }
+  td::before { content: attr(data-label); display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
+}
+</style>
+</head>
+<body>
+<main>
+<h1>ผู้บริหารพูดตรงกับตัวเลขจริงไหม</h1>
+<p class="lead">เทียบคำพูดใน Opp Day กับงบการเงินและ MD&amp;A ของ CPALL, SCC และ TRUE งวดล่าสุดที่ตรวจได้ของแต่ละหุ้น ไม่ได้ใช้เปรียบเทียบหุ้นข้ามบริษัท และไม่ใช่คำแนะนำการลงทุน</p>
+
+<div class="note">
+  <b>สรุป:</b> ตัวเลขหลักส่วนใหญ่ตรงกับเอกสาร ประเด็นสำคัญไม่ใช่ตัวเลขผิด แต่เป็นบริบทที่ไม่ได้พูด ข้อที่แรงที่สุดคือ SCC พูดว่ากำไรครึ่งปีตามงบ "ปรับเพิ่มขึ้น" แต่งบระบุว่าลดลง 3.7% จากปีก่อน ผู้เรียนฟังคลิปแล้วยืนยันว่าพูดอย่างนั้นจริง
+</div>
+
+<div class="stats" id="stats" aria-label="จำนวนข้อที่ตรวจ"></div>
+
+<div class="note">
+  <b>ข้อจำกัด:</b> AI เป็นผู้อ่านเอกสารและตรวจ ผู้เรียนฟังคลิปยืนยันแล้วเฉพาะข้อ "ไม่ตรง" ทั้ง 2 ข้อ ข้ออื่นอิงจากถอดความอัตโนมัติ หน่วยเป็นล้านบาท ถ้าไม่ได้ระบุเป็นอย่างอื่น
+  TRUE ใช้ Q2-2569 แทนงวดล่าสุด Q3-2569 เพราะคลิป Q3 ยังไม่มีคำบรรยาย (เช็กล่าสุด 2026-11-04) จึงยังเทียบคำพูดงวด Q3 ไม่ได้
+</div>
+
+<nav class="filters" aria-label="กรองตามผลตรวจ">
+  <button type="button" data-f="all" aria-pressed="true">ทั้งหมด</button>
+  <button type="button" data-f="ok" aria-pressed="false">ตรง</button>
+  <button type="button" data-f="ctx" aria-pressed="false">ตรงแต่ขาดบริบท</button>
+  <button type="button" data-f="chk" aria-pressed="false">ต้องเช็กต่อ</button>
+  <button type="button" data-f="bad" aria-pressed="false">ไม่ตรง</button>
+  <button type="button" data-f="na" aria-pressed="false">ตรวจไม่ได้</button>
+</nav>
+
+<!-- CPALL -->
+<section>
+<h2>CPALL</h2>
+<p class="period">งวดหลัก Q2-2569 · ที่มา: <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202608/0737FIN130820261344060983E.zip">งบ</a> · <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202608/0737NWS130820261708080290E.pdf">MD&amp;A</a> · <a href="https://www.youtube.com/watch?v=wYCz3EB5CsA">Opp Day</a> (iDisc และ SET Thailand เข้าถึง 2026-11-04)</p>
+<h3>กำไรมาจากธุรกิจปกติหรือรายการพิเศษ</h3>
+<ul>
+  <li>กำไรบริษัทใหญ่ 7,512 โต 11.0% แต่กำไรขั้นต้นหักค่าใช้จ่ายขายและบริหารลดลง 714 เหลือ 4,866 [คำนวณจากงบ PL 3m]</li>
+  <li>กำไรที่เพิ่ม 743 มาจากรายได้อื่น +872, อัตราแลกเปลี่ยน +350, ต้นทุนการเงิน +198 และส่วนของผู้ถือหุ้นส่วนน้อย +202 [คำนวณจากงบ PL 3m]</li>
+  <li>ตัดอัตราแลกเปลี่ยนออก กำไรก่อนต้นทุนการเงินและภาษีโตแค่ 1.2% ไม่ใช่ 3.9% [คำนวณจากงบ PL 3m]</li>
+</ul>
+<h3>เป้าที่ให้ไว้ทำได้แค่ไหน</h3>
+<ul>
+  <li>เปิดร้าน 339 จาก 700 สาขาในครึ่งปีแรก คิดเป็น 48% [<a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202605/0737NWS130520261715421880E.pdf">MD&amp;A Q1</a> น.3 · MD&amp;A น.3, 8]</li>
+  <li>SSSG ไตรมาส 2 อยู่ที่ +0.8% ต่ำกว่าระดับ GDP ราว 1.5-2% ที่ผู้บริหารใช้เทียบ [MD&amp;A น.4 · <a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1845s">Opp 30:45</a>]</li>
+  <li>อัตรากำไรขั้นต้นเซเว่นตั้งเป้าโต 10-20 basis point ทั้งปี แต่ไตรมาส 2 ทรงตัวที่ 29.3% [<a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1277s">Opp 21:17</a> · MD&amp;A น.4]</li>
+</ul>
+<h3>อะไรเปลี่ยนแรงแต่ไม่ได้พูดถึง</h3>
+<ul>
+  <li>เงินกู้ระยะสั้นจาก 17,935 เป็น 35,312 เพิ่ม 97% ขณะที่หนี้รวมลดลง 6,696 [งบ BS · MD&amp;A น.6]</li>
+  <li>ใน 6 เดือน เงินสดหลังหักค่าลงทุน ค่าเช่า และดอกเบี้ยเหลือ 3,382 แต่จ่ายเงินปันผล 16,918 ยังไม่ได้เช็กว่าเงินปันผลกระจุกในครึ่งปีแรกหรือไม่ [คำนวณจากงบ CF]</li>
+</ul>
+<table>
+<thead><tr><th>ผู้บริหารพูดหรือเขียน</th><th>ตัวเลขจริงที่พบ</th><th>ผล</th><th>ที่มา</th></tr></thead>
+<tbody>
+<tr class="ok"><td data-label="คำพูด">รายได้รวมงบเฉพาะกิจการราว 137,000 โต 5.3%</td><td data-label="ตัวเลขจริง">137,035 โต 5.3%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=159s">Opp 2:39</a> · งบ PL 3m</td></tr>
+<tr class="ok"><td data-label="คำพูด">รายได้รวมงบรวมราว 265,700 โต 3.6%</td><td data-label="ตัวเลขจริง">265,760 โต 3.6%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=208s">Opp 3:28</a> · งบ PL 3m</td></tr>
+<tr class="ok"><td data-label="คำพูด">กำไรสุทธิงบรวม 7,512 โตราว 11%</td><td data-label="ตัวเลขจริง">7,512 โต 11.0%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=230s">Opp 3:50</a> · งบ PL 3m</td></tr>
+<tr class="ctx"><td data-label="คำพูด">กำไรงบเฉพาะกิจการราว 10,400 โต 13.5% และบอกว่าดูธุรกิจหลักจากงบนี้ได้</td><td data-label="ตัวเลขจริง">10,392 โต 13.5% แต่รวมเงินปันผลจากบริษัทย่อย 5,398 หรือ 52% ของกำไร</td><td data-label="ผล"><span class="chip">ตรงแต่ขาดบริบท</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=208s">Opp 3:28</a>, <a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1618s">26:58</a> · งบ PL 3m · MD&amp;A น.5</td></tr>
+<tr class="ok"><td data-label="คำพูด">อัตรากำไรขั้นต้นเซเว่นคงที่จากปีก่อน</td><td data-label="ตัวเลขจริง">29.35% เทียบกับ 29.30%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=185s">Opp 3:05</a> · คำนวณจากงบ PL 3m</td></tr>
+<tr class="chk"><td data-label="คำพูด">EBIT margin เซเว่นเพิ่มราว 60 basis point อยู่ที่ราว 10%</td><td data-label="ตัวเลขจริง">เทียบกับรายได้รวมได้ 9.95% กับ 9.45% เพิ่ม 50 basis point ต้องเช็กนิยามของบริษัท</td><td data-label="ผล"><span class="chip">ต้องเช็กต่อ</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=185s">Opp 3:05</a> · คำนวณจากงบ PL 3m</td></tr>
+<tr class="ok"><td data-label="คำพูด">ค่าใช้จ่ายเซเว่นโตราว 4% กว่า ต่ำกว่ายอดขาย</td><td data-label="ตัวเลขจริง">ค่าใช้จ่าย +4.5% ยอดขาย +5.1%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1703s">Opp 28:23</a> · คำนวณจากงบ PL 3m</td></tr>
+<tr class="chk"><td data-label="คำพูด">MD&amp;A: ค่าใช้จ่ายเพิ่มตามรายได้ ("grew in line with revenue growth")</td><td data-label="ตัวเลขจริง">งบรวมค่าใช้จ่าย +5.3% รายได้ +3.3% ใน Opp Day ผู้บริหารยอมรับว่าภาพงบรวมโตเร็วกว่ายอดขาย แต่ประโยคนี้อาจหมายถึงเฉพาะบางรายการ</td><td data-label="ผล"><span class="chip">ต้องเช็กต่อ</span></td><td data-label="ที่มา" class="src">MD&amp;A น.3 · งบ PL 3m · <a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1677s">Opp 27:57</a></td></tr>
+<tr class="ctx"><td data-label="คำพูด">หนี้มีภาระดอกเบี้ย 319,574 เป็นหุ้นกู้ 83%</td><td data-label="ตัวเลขจริง">319,574 หุ้นกู้ 82.8% แต่เงินกู้ระยะสั้นเกือบเท่าตัว</td><td data-label="ผล"><span class="chip">ตรงแต่ขาดบริบท</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=960s">Opp 16:00</a> · คำนวณจากงบ BS</td></tr>
+<tr class="chk"><td data-label="คำพูด">ดอกเบี้ยจ่ายลดลงเพราะออกหุ้นกู้ใหม่ทดแทนช่วงปลายไตรมาส</td><td data-label="ตัวเลขจริง">ต้นทุนการเงิน 2Q ลด 5.2% แต่ใน 6 เดือนมีดอกเบี้ยที่บันทึกเป็นต้นทุนสินทรัพย์ 113 จากปีก่อน 0 เทียบกับยอดที่ลด 373 คิดเป็น 30%</td><td data-label="ผล"><span class="chip">ต้องเช็กต่อ</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1009s">Opp 16:49</a> · คำนวณจากงบ PL 3m, CF</td></tr>
+<tr class="ok"><td data-label="คำพูด">Net debt ต่อ adjusted equity 0.82 เท่า</td><td data-label="ตัวเลขจริง">0.82 เท่าใน MD&amp;A ไม่ได้คำนวณซ้ำจากงบ</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1009s">Opp 16:49</a> · MD&amp;A น.6</td></tr>
+<tr class="ok"><td data-label="คำพูด">SSSG +0.8%, 959 คนต่อร้านต่อวัน, ยอดซื้อ 90 บาท, ยอดขายต่อร้านต่อวัน 85,843 บาท</td><td data-label="ตัวเลขจริง">ตรงกับ MD&amp;A ตัวเลขเหล่านี้ไม่มีในงบ</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=680s">Opp 11:20</a>, <a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=767s">12:47</a> · MD&amp;A น.4</td></tr>
+<tr class="na"><td data-label="คำพูด">Product margin เพิ่ม 20 basis point</td><td data-label="ตัวเลขจริง">ไม่พบตัวเลขนี้ในงบหรือ MD&amp;A</td><td data-label="ผล"><span class="chip">ตรวจไม่ได้</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=838s">Opp 13:58</a>, <a href="https://www.youtube.com/watch?v=wYCz3EB5CsA&amp;t=1334s">22:14</a></td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- SCC -->
+<section>
+<h2>SCC</h2>
+<p class="period">งวดหลัก Q2-2569 (งบ Q3-2569 ยังไม่ออก) · ที่มา: <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202608/0003FIN130820260836120579E.zip">งบ</a> · <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202608/0003NWS130820261245223520E.pdf">MD&amp;A</a> · <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202610/0003NWS281020261756237290E.pdf">MD&amp;A Q3-2569</a> (iDisc เข้าถึง 2026-11-03) · <a href="https://www.youtube.com/watch?v=EYC3SvfSdG4">Opp Day</a> (SET Thailand เข้าถึง 2026-11-04)</p>
+<h3>กำไรมาจากธุรกิจปกติหรือรายการพิเศษ</h3>
+<ul>
+  <li>กำไรไตรมาส 2 อยู่ที่ 11,535 ลดลง 33.5% จากปีก่อน เพราะปีก่อนมีส่วนแบ่งกำไรบริษัทร่วม 14,510 และรายได้อื่น 10,978 เทียบกับปีนี้ 2,191 และ 4,183 [งบ ชีต 2 · MD&amp;A น.6]</li>
+  <li>ธุรกิจหลักดีขึ้นจริง อัตรากำไรขั้นต้นเพิ่มจาก 15.4% เป็น 20.9% [คำนวณจากงบ ชีต 2]</li>
+  <li>กำไรครึ่งปีตามงบ 17,758 สูงกว่ากำไรที่ปรับปรุงแล้ว 12,649 อยู่ 5,109 จากการปรับมูลค่าสินค้าคงเหลือและรายการอื่น [MD&amp;A น.2, 6]</li>
+</ul>
+<h3>เป้าที่ให้ไว้ทำได้แค่ไหน</h3>
+<ul>
+  <li>โรงงาน ROC: MD&amp;A ฉบับ 22 ก.ค. บอกเปิดกลางเดือนสิงหาคม ฉบับ 23 ก.ค. เปลี่ยนเป็นภายในสิ้นไตรมาส 3 และ MD&amp;A Q3 รายงานว่าเปิดแล้วกลางเดือนกันยายน จึงทันตามฉบับที่แก้ [<a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202607/0003NWS220720261714111320E.pdf">ฉบับ 22 ก.ค.</a> น.12 · <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202607/0003NWS230720261232186200E.pdf">ฉบับ 23 ก.ค.</a> น.12 · MD&amp;A Q3 น.4]</li>
+  <li>งบลงทุนทั้งปีตั้งไว้ราว 30,000 ครึ่งปีแรกใช้ 11,064 คิดเป็น 37% [<a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=1128s">Opp 18:48</a> · MD&amp;A น.14]</li>
+  <li>ผู้บริหารบอกว่าสถานการณ์เริ่มดีขึ้นชัดเจนและขึ้นปันผล [<a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=802s">Opp 13:22</a>] แต่กำไรไตรมาส 3 อยู่ที่ 2,385 ลดลง 79% จากไตรมาสก่อน [MD&amp;A Q3 น.2] ทั้งนี้ผู้บริหารเตือนเรื่องความผันผวนไว้ด้วย [<a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=1774s">Opp 29:34</a>]</li>
+</ul>
+<h3>อะไรเปลี่ยนแรงแต่ไม่ได้พูดถึง</h3>
+<ul>
+  <li>Opp Day เน้นตัวเลขครึ่งปีและตัวเลขที่ปรับปรุงแล้ว ไม่พบการพูดถึงกำไรไตรมาส 2 ที่ลดลง 33% ส่วน MD&amp;A ระบุไว้ [MD&amp;A น.5-6]</li>
+  <li>หนี้สินสุทธิลด 39,176 ในไตรมาส 2 โดยมีเงินจากการขายหุ้น Chandra Asri ราว 24,900 คิดเป็นราว 64% ผู้บริหารบอกเรื่องนี้ แต่เป็นรายการครั้งเดียว [MD&amp;A น.3, 14 · <a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=999s">Opp 16:39</a>]</li>
+  <li>สินค้าคงเหลือเพิ่ม 7,106 หรือ 10.6% จากสิ้นปี [คำนวณจากงบ ชีต 1]</li>
+</ul>
+<table>
+<thead><tr><th>ผู้บริหารพูดหรือเขียน</th><th>ตัวเลขจริงที่พบ</th><th>ผล</th><th>ที่มา</th></tr></thead>
+<tbody>
+<tr class="bad"><td data-label="คำพูด">กำไรครึ่งปีตามงบราว 17,700 "ปรับเพิ่มขึ้น"</td><td data-label="ตัวเลขจริง">17,758 เทียบกับ 18,436 <b>ลดลง 3.7%</b> จากปีก่อน MD&amp;A ก็ระบุ -4% ผู้เรียนฟังคลิปแล้วยืนยันว่าพูดจริง (2026-11-04) แต่ยังไม่รู้ว่าผู้พูดเทียบกับช่วงไหน</td><td data-label="ผล"><span class="chip">ไม่ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=910s">Opp 15:10</a>, <a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=936s">15:36</a> · งบ ชีต 2 · MD&amp;A น.5</td></tr>
+<tr class="ok"><td data-label="คำพูด">รายได้ครึ่งปีราว 259,000 เพิ่ม 4%</td><td data-label="ตัวเลขจริง">259,570 เพิ่ม 4.2%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=826s">Opp 13:46</a> · งบ ชีต 2</td></tr>
+<tr class="ok"><td data-label="คำพูด">กำไรที่ปรับปรุงแล้วครึ่งปีราว 12,650</td><td data-label="ตัวเลขจริง">12,649 ใน MD&amp;A ไม่ใช่ตัวเลขในงบ</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=688s">Opp 11:28</a> · MD&amp;A น.2</td></tr>
+<tr class="ok"><td data-label="คำพูด">Adjusted Cash EBITDA เกือบ 43,000 เพิ่ม 35%</td><td data-label="ตัวเลขจริง">42,913 เพิ่ม 35% ใน MD&amp;A ไม่ใช่ตัวเลขในงบ</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=666s">Opp 11:06</a> · MD&amp;A น.2</td></tr>
+<tr class="ok"><td data-label="คำพูด">Reported EBITDA ราว 44,000</td><td data-label="ตัวเลขจริง">44,092 ใน MD&amp;A</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=882s">Opp 14:42</a> · MD&amp;A น.5</td></tr>
+<tr class="ok"><td data-label="คำพูด">หนี้สินสุทธิราว 238,000 ลดลง 39,000 ในไตรมาส 2</td><td data-label="ตัวเลขจริง">238,270 ลดลง 39,176 ใน MD&amp;A คำนวณจากงบได้ 238,212</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=981s">Opp 16:21</a> · MD&amp;A น.14 · งบ ชีต 1</td></tr>
+<tr class="ok"><td data-label="คำพูด">หนี้สินสุทธิต่อ EBITDA 3.7 เท่า</td><td data-label="ตัวเลขจริง">3.7 เท่าใน MD&amp;A</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=454s">Opp 7:34</a> · MD&amp;A น.3</td></tr>
+<tr class="ok"><td data-label="คำพูด">เงินสดราว 76,700-76,800</td><td data-label="ตัวเลขจริง">76,775 ใน MD&amp;A รวมเงินสดและเงินลงทุนที่บริหาร</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=740s">Opp 12:20</a>, <a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=1026s">17:06</a> · MD&amp;A น.14</td></tr>
+<tr class="ok"><td data-label="คำพูด">ขายหุ้น Chandra Asri ได้เงินราว 24,900</td><td data-label="ตัวเลขจริง">ราว 24,900 ใน MD&amp;A งบกระแสเงินสดแสดงเงินรับจากขายตราสารทุน 24,822</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=999s">Opp 16:39</a> · MD&amp;A น.3 · งบ ชีต 5</td></tr>
+<tr class="ok"><td data-label="คำพูด">ต้นทุนการเงิน 3% เทียบกับ 3.3%</td><td data-label="ตัวเลขจริง">3.0% เทียบกับ 3.3%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=1069s">Opp 17:49</a> · MD&amp;A น.14</td></tr>
+<tr class="ok"><td data-label="คำพูด">งบลงทุนครึ่งปีราว 11,000</td><td data-label="ตัวเลขจริง">11,064 รวมเงินลงทุน ใน MD&amp;A</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=1098s">Opp 18:18</a> · MD&amp;A น.14</td></tr>
+<tr class="ok"><td data-label="คำพูด">เงินปันผลระหว่างกาล 3.50 บาท จาก 2.50 บาท</td><td data-label="ตัวเลขจริง">3.5 บาท เทียบกับ 2.5 บาท</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=771s">Opp 12:51</a> · MD&amp;A น.5</td></tr>
+<tr class="na"><td data-label="คำพูด">วันหมุนเวียนเงินทุนลดเหลือ 66 วัน จาก 68 วัน</td><td data-label="ตัวเลขจริง">MD&amp;A ระบุเฉพาะวันหมุนเวียนสินค้าคงเหลือ 60 วัน จาก 61 วัน เป็นคนละตัวชี้วัด</td><td data-label="ผล"><span class="chip">ตรวจไม่ได้</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=EYC3SvfSdG4&amp;t=1050s">Opp 17:30</a> · MD&amp;A น.14</td></tr>
+</tbody>
+</table>
+</section>
+
+<!-- TRUE -->
+<section>
+<h2>TRUE</h2>
+<p class="period">ใช้ Q2-2569 แทน Q3-2569 ชั่วคราว · ที่มา: <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202608/1756FIN040820261640130805E.zip">งบ</a> · <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202608/1756NWS040820261716148760E.pdf">MD&amp;A</a> · <a href="https://market.sec.or.th/public/idisc/Download?FILEID=dat/news/202611/1756NWS021120261236009700E.pdf">MD&amp;A Q3-2569</a> (iDisc เข้าถึง 2026-11-03) · <a href="https://www.youtube.com/watch?v=S42gaTDXcbw">Opp Day</a> (SET Thailand เข้าถึง 2026-11-04)</p>
+<h3>กำไรมาจากธุรกิจปกติหรือรายการพิเศษ</h3>
+<ul>
+  <li>กำไร 6,554 เพิ่มเป็น 3.2 เท่าจาก 2,031 และทรงตัวจากไตรมาสก่อน [งบ Eng5-6 · MD&amp;A น.6]</li>
+  <li>ส่วนสำคัญมาจากการเปลี่ยนโครงสร้างคลื่นความถี่ MD&amp;A ระบุการประหยัดจากคลื่นใหม่ปีละ 7,100 และค่าใช้จ่ายอื่นลดจาก 2,614 เหลือ 705 [MD&amp;A น.6 · งบ Eng5-6]</li>
+  <li>รายการครั้งเดียวไม่มาก กำไรที่ปรับปรุงแล้ว 6,736 ต่างจากกำไรตามงบราว 182 [MD&amp;A น.6]</li>
+</ul>
+<h3>เป้าที่ให้ไว้ทำได้แค่ไหน</h3>
+<ul>
+  <li>ไตรมาส 2 ลดเป้ารายได้บริการจากโต 2-3% เป็น 1-2% และคงเป้า EBITDA โต 7-9% กับงบลงทุน 25,000-27,000 [MD&amp;A น.8]</li>
+  <li>ไตรมาส 3 คงเป้าเดิม ผล 9 เดือนรายได้บริการโต 0.32% หรือ 1.13% เมื่อปรับปรุงแล้ว EBITDA โต 9.9% [MD&amp;A Q3 น.8]</li>
+</ul>
+<h3>อะไรเปลี่ยนแรงแต่ไม่ได้พูดถึง</h3>
+<ul>
+  <li>เงินกู้ระยะยาวที่ถึงกำหนดใน 1 ปีเพิ่มจาก 65,511 เป็น 81,518 หรือ 24% ขณะที่เงินสดงบรวม 16,036 และสินทรัพย์หมุนเวียนต่อหนี้สินหมุนเวียน 0.40 เท่า ในคำบรรยายพูดถึงการออกหุ้นกู้ใหม่ 16,500 แต่ไม่พบการพูดถึงยอดนี้ [คำนวณจากงบ Eng 2-4]</li>
+  <li>บริษัทแม่มีเงินสด 1,756 เทียบกับเงินปันผล 5,183 ที่จะจ่าย และ 6 เดือนมีกำไร 645 กับกระแสเงินสดจากการดำเนินงาน -837 ผู้บริหารตอบว่าบริษัทย่อยจะส่งเงินปันผลขึ้นมาได้ [งบ Eng 2-4, Eng7-8, งบกระแสเงินสด · MD&amp;A น.6]</li>
+</ul>
+<table>
+<thead><tr><th>ผู้บริหารพูดหรือเขียน</th><th>ตัวเลขจริงที่พบ</th><th>ผล</th><th>ที่มา</th></tr></thead>
+<tbody>
+<tr class="bad"><td data-label="คำพูด">กำไร 6 เดือนราว 13,300 ต่อจากการพูดถึงกำไรตามงบที่ดีขึ้น 9,500</td><td data-label="ตัวเลขจริง">กำไรตามงบ 13,143 ดีขึ้น 9,478 ส่วน 13,300 คือกำไรที่ปรับปรุงแล้วตามกราฟใน MD&amp;A ผู้เรียนฟังคลิปแล้วยืนยันว่าพูด 13.3 พันล้านบาทจริง (2026-11-04)</td><td data-label="ผล"><span class="chip">ไม่ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=1004s">Opp 16:44</a> · งบ Eng7-8 · MD&amp;A น.8</td></tr>
+<tr class="ctx"><td data-label="คำพูด">งบลงทุนไตรมาส 2 ราว 4,600 หรือ 10% ของรายได้</td><td data-label="ตัวเลขจริง">4,614 ตรง แต่งบกระแสเงินสด 6 เดือนจ่ายซื้อสินทรัพย์และสินทรัพย์ไม่มีตัวตน 24,254 สาเหตุที่ต่างยังไม่ได้เช็ก</td><td data-label="ผล"><span class="chip">ตรงแต่ขาดบริบท</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=860s">Opp 14:20</a> · MD&amp;A น.3, 5 · งบกระแสเงินสด</td></tr>
+<tr class="ok"><td data-label="คำพูด">รายได้รวมลดลง 7.5%</td><td data-label="ตัวเลขจริง">45,901 ลดลง 7.5%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=358s">Opp 5:58</a> · งบ Eng5-6</td></tr>
+<tr class="ok"><td data-label="คำพูด">รายได้บริการโต 0.8% ทั้งเทียบปีและเทียบไตรมาส</td><td data-label="ตัวเลขจริง">41,378 เมื่อไม่รวมค่าเชื่อมต่อโครงข่าย โต 0.8% ทั้งคู่ ตัวเลขในงบที่รวมรายการอื่นคือ 41,818 ลดลง 8.4%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=35s">Opp 0:35</a> · MD&amp;A น.4 · งบ Eng5-6</td></tr>
+<tr class="ok"><td data-label="คำพูด">EBITDA โต 13.5% และ 1.1% จากไตรมาสก่อน</td><td data-label="ตัวเลขจริง">28,335 โต 13.5% และ 1.1% ใน MD&amp;A</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=208s">Opp 3:28</a> · MD&amp;A น.6</td></tr>
+<tr class="ok"><td data-label="คำพูด">กำไร 6,600 เพิ่ม 3.2 เท่า ทรงตัวจากไตรมาสก่อน</td><td data-label="ตัวเลขจริง">6,554 เพิ่ม 3.23 เท่า ไตรมาสก่อน 6,589</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=777s">Opp 12:57</a> · คำนวณจากงบ Eng5-6, Eng7-8</td></tr>
+<tr class="ok"><td data-label="คำพูด">กำไรที่ปรับปรุงแล้วราว 6,700</td><td data-label="ตัวเลขจริง">6,736</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=801s">Opp 13:21</a> · MD&amp;A น.6</td></tr>
+<tr class="ok"><td data-label="คำพูด">เงินปันผล 15 สตางค์ รวม 5,200 คิดเป็น 79% ของกำไร</td><td data-label="ตัวเลขจริง">5,183 คิดเป็น 79.1% ของกำไร</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=941s">Opp 15:41</a> · MD&amp;A น.6</td></tr>
+<tr class="ok"><td data-label="คำพูด">หนี้สินสุทธิต่อ EBITDA 3.7 เท่า ลดลง 0.3 เท่าจากปีก่อน</td><td data-label="ตัวเลขจริง">3.7 เท่า ลดลง 0.3 เท่าจากปีก่อน และ 0.1 เท่าจากไตรมาสก่อน</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=59s">Opp 0:59</a> · MD&amp;A น.7</td></tr>
+<tr class="ok"><td data-label="คำพูด">อัตราดอกเบี้ยแท้จริง 3.6% ลดลง 0.4 จุด</td><td data-label="ตัวเลขจริง">ลดลง 0.4 จุดเป็น 3.6%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=889s">Opp 14:49</a> · MD&amp;A น.6-7</td></tr>
+<tr class="ok"><td data-label="คำพูด">EBITDA ต่อรายได้บริการ 68.5% เพิ่ม 7.6 จุด</td><td data-label="ตัวเลขจริง">68.5% เพิ่ม 7.6 จุด</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=763s">Opp 12:43</a> · MD&amp;A น.6</td></tr>
+<tr class="ok"><td data-label="คำพูด">ค่าเสื่อมราคาและค่าตัดจำหน่ายเพิ่ม 5.2%</td><td data-label="ตัวเลขจริง">17,453 เพิ่ม 5.2%</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=829s">Opp 13:49</a> · MD&amp;A น.6</td></tr>
+<tr class="ok"><td data-label="คำพูด">นักลงทุนถามว่ากำไรงบเฉพาะกิจการติดลบ 255 ผู้บริหารตอบว่าไตรมาสนี้มีกำไร</td><td data-label="ตัวเลขจริง">กำไรงบเฉพาะกิจการ 315 จริง ส่วน -256 คือกำไรเบ็ดเสร็จรวม จึงถูกทั้งคู่แต่คนละบรรทัด</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=1084s">Opp 18:04</a>, <a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=1178s">19:38</a> · งบ Eng5-6</td></tr>
+<tr class="ok"><td data-label="คำพูด">บริษัทแม่มีกำไรสะสมราว 15,000 สำหรับจ่ายปันผล</td><td data-label="ตัวเลขจริง">15,829 ลดจาก 24,167 เมื่อสิ้นปี</td><td data-label="ผล"><span class="chip">ตรง</span></td><td data-label="ที่มา" class="src"><a href="https://www.youtube.com/watch?v=S42gaTDXcbw&amp;t=1103s">Opp 18:23</a> · งบ Eng 2-4</td></tr>
+</tbody>
+</table>
+</section>
+
+<footer>
+  <p><b>วิธีอ่านผล:</b> "ตรง" คือตัวเลขตรงหรือต่างจากการปัดเศษ · "ตรงแต่ขาดบริบท" คือตัวเลขถูก แต่มีข้อมูลสำคัญที่ไม่ได้พูด · "ต้องเช็กต่อ" คือยังสรุปไม่ได้ · "ไม่ตรง" คือขัดกับเอกสารตามถอดความ · "ตรวจไม่ได้" คือไม่พบตัวเลขในเอกสารที่อ่าน</p>
+  <p>Opp Day เป็นคำบรรยายอัตโนมัติและมีคำผิด MD&amp;A และงบของ SCC กับ TRUE เป็นฉบับภาษาอังกฤษ ตัวเลขที่เขียนว่า "คำนวณ" ไม่ได้ปรับผลทางภาษี งบระหว่างกาลเป็นงบสอบทาน ไม่ใช่งบตรวจสอบ และยังไม่ได้อ่านหมายเหตุประกอบงบครบ</p>
+</footer>
+</main>
+<script>
+(function () {
+  var labels = { ok: "ตรง", ctx: "ตรงแต่ขาดบริบท", chk: "ต้องเช็กต่อ", bad: "ไม่ตรง", na: "ตรวจไม่ได้" };
+  var rows = Array.prototype.slice.call(document.querySelectorAll("tbody tr"));
+  var box = document.getElementById("stats");
+  box.innerHTML = '<div class="stat"><b>' + rows.length + '</b><span>ข้อที่ตรวจทั้งหมด</span></div>' +
+    Object.keys(labels).map(function (k) {
+      var n = rows.filter(function (r) { return r.className === k; }).length;
+      return '<div class="stat"><b>' + n + '</b><span>' + labels[k] + '</span></div>';
+    }).join("");
+  var buttons = document.querySelectorAll(".filters button");
+  buttons.forEach(function (b) {
+    b.addEventListener("click", function () {
+      buttons.forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      var f = b.getAttribute("data-f");
+      rows.forEach(function (r) { r.style.display = f === "all" || r.className === f ? "" : "none"; });
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -10,4 +10,7 @@
 
 ## ลิงก์ผลงาน
 
-- [ลิงก์]
+- [earnings-check.html](earnings-check.html): ผลตรวจคำพูดผู้บริหาร CPALL, SCC, TRUE (ดาวน์โหลดแล้วเปิดในเบราว์เซอร์)
+- [earnings-check-screenshot.jpg](earnings-check-screenshot.jpg): ภาพหน้าจอผลงาน
+- [CPALL_Q2-2569_summary.md](CPALL_Q2-2569_summary.md): สรุปแบบอ่านเองของ CPALL
+- [fetch_stock.py](fetch_stock.py): สคริปต์ดึงเอกสารจาก ก.ล.ต. iDisc
